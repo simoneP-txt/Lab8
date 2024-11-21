@@ -3,6 +3,7 @@ import polars as pl
 import altair as alt
 from vega_datasets import data
 from icecream import ic
+import geopandas as gpd
 
 url = "https://www.dei.unipd.it/~ceccarello/data/gapminder.csv"
 
@@ -42,7 +43,6 @@ st.altair_chart(
 )
 
 source = alt.topo_feature(data.world_110m.url, 'countries')
-print(source)
 input_dropdown = alt.binding_select(options=[
     "equalEarth",
     "naturalEarth1",
@@ -50,20 +50,54 @@ input_dropdown = alt.binding_select(options=[
 ], name='Projection ')
 
 param_projection = alt.param(value="equalEarth", bind=input_dropdown)
-print(param_projection)
 
+#from altair import expr
+#
+#countries = alt.topo_feature(data.world_110m.url, 'countries')
+#
+## Rinominare le colonne per corrispondere, se necessario (es: country -> name)
+#data_07 = data_07.rename({"country": "name"})  # Adatta il nome se serve
+#print(data_07)
+## Unire i dati geografici con il dataset dei paesi
+#merged_data = (
+#    alt.Chart(countries)
+#    .transform_lookup(
+#        lookup="properties.name",  # Nome del campo geografico
+#        from_=alt.LookupData(data_07.to_pandas(), "name", ["lifeExp"])  # Dati da unire
+#    )
+#)
+#
+
+df_us_unemp = data.unemployment()
+print(df_us_unemp)
+
+#countries = gpd.read_file(data.world_110m.url, driver='TopoJSON', layer='countries')
+#print(countries)
 map = (
     alt.Chart(source, width=500, height=300)
     .mark_geoshape(fill='lightgray', stroke='gray')
+    #.transform_lookup()
     .project(type=alt.expr(param_projection.name))
     .add_params(param_projection)
     .encode(
-        color=alt.Color("lifeExp:Q", scale=alt.Scale(scheme="viridis"), title="Life Expectancy"),
-        tooltip=["properties.name:N", "lifeExp:Q"]
+        #color=data_07["lifeExp"]
     )
 )
 
 st.altair_chart(
     map,
+    use_container_width=True
+)
+
+print(data_07.select("lifeExp"))
+
+gdf_world = gpd.read_file(data.world_110m.url, driver="TopoJSON")
+
+world = alt.Chart(gdf_world).mark_geoshape(
+    fill="mintcream", stroke="black", strokeWidth=0.35
+)
+
+st.altair_chart(
+    world,
     use_container_width=True
 )
