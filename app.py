@@ -30,7 +30,11 @@ data_07 = data1.filter(pl.col("year") == 2007)
 
 pie_chart = (
     alt.Chart(data_07)
-    .mark_arc(radius = 100, radius2 = 150, cornerRadius=5)
+    .mark_arc( radius = 110, radius2 = 165, cornerRadius=5)
+    .transform_aggregate(
+        pop = "sum(pop)",
+        groupby = ["continent"]
+    )
     .encode(
         alt.Theta("pop", aggregate = "sum"),
         alt.Color("continent")
@@ -40,6 +44,27 @@ pie_chart = (
 st.altair_chart(
     pie_chart,
     use_container_width=True
+)
+
+base_pie= (
+    alt.Chart(data_07)
+    .mark_arc(cornerRadius=5)
+    .transform_aggregate(
+        pop = "sum(pop)",
+        groupby = ["continent"]
+    )
+    .encode(
+        alt.Theta("pop", aggregate = "sum"),
+        alt.Color("continent")
+    )
+)
+
+text_pie = (
+    base_pie
+    .mark_text()
+    .encode(
+        alt.Text("pop")
+    )
 )
 ###########################################################################################
 source = alt.topo_feature(data.world_110m.url, 'countries')
@@ -51,21 +76,38 @@ input_dropdown = alt.binding_select(options=[
 
 param_projection = alt.param(value="equalEarth", bind=input_dropdown)
 
-df_us_unemp = data.unemployment()
-print(df_us_unemp)
+#map = (
+#    alt.Chart(source, width=500, height=300)
+#    .mark_geoshape(fill='lightgray', stroke='gray') #contorni grigi
+#    #.transform_lookup()
+#    .project(type=alt.expr(param_projection.name))
+#    .add_params(param_projection)
+#    .encode(
+#        #color=data_07["lifeExp"]
+#    )
+#)
 
 map = (
     alt.Chart(source, width=500, height=300)
-    .mark_geoshape(fill='lightgray', stroke='gray')
-    #.transform_lookup()
+    .mark_geoshape()
+    .transform_lookup(
+        lookup="id",  # Proprietà del TopoJSON da usare come chiave
+        from_=alt.LookupData(data_07.to_pandas(), "id", ["lifeExp"])  # Dati da unire
+    )
+    .encode(
+        #color=alt.Color("lifeExp:Q", scale=alt.Scale(scheme="viridis"), title="Life Expectancy"),
+        #tooltip=[
+        #    alt.Tooltip("id:N", title="Country ID"),
+        #    alt.Tooltip("lifeExp:Q", title="Life Expectancy")
+        #]
+    )
     .project(type=alt.expr(param_projection.name))
     .add_params(param_projection)
-    .encode(
-        #color=data_07["lifeExp"]
-    )
 )
 
 st.altair_chart(
     map,
     use_container_width=True
 )
+
+###########################################################################################################
